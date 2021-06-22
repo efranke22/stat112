@@ -1,0 +1,390 @@
+---
+title: 'Weekly Exercises #5'
+author: "Erin Franke"
+output: 
+  html_document:
+    keep_md: TRUE
+    toc: TRUE
+    toc_float: TRUE
+    df_print: paged
+    code_download: true
+---
+
+
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+```
+
+```{r libraries}
+library(tidyverse)     # for data cleaning and plotting
+library(gardenR)       # for Lisa's garden data
+library(lubridate)     # for date manipulation
+library(openintro)     # for the abbr2state() function
+library(palmerpenguins)# for Palmer penguin data
+library(maps)          # for map data
+library(ggmap)         # for mapping points on maps
+library(gplots)        # for col2hex() function
+library(RColorBrewer)  # for color palettes
+library(sf)            # for working with spatial data
+library(leaflet)       # for highly customizable mapping
+library(ggthemes)      # for more themes (including theme_map())
+library(plotly)        # for the ggplotly() - basic interactivity
+library(gganimate)     # for adding animation layers to ggplots
+library(transformr)    # for "tweening" (gganimate)
+library(gifski)        # need the library for creating gifs but don't need to load each time
+library(shiny)         # for creating interactive apps
+library(ggimage)
+theme_set(theme_minimal())
+```
+
+```{r data, echo = FALSE}
+# SNCF Train data
+small_trains <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-02-26/small_trains.csv") 
+
+# Lisa's garden data
+data("garden_harvest")
+
+# Lisa's Mallorca cycling data
+mallorca_bike_day7 <- read_csv("https://www.dropbox.com/s/zc6jan4ltmjtvy0/mallorca_bike_day7.csv?dl=1") %>% 
+  select(1:4, speed)
+
+# Heather Lendway's Ironman 70.3 Pan Am championships Panama data
+panama_swim <- read_csv("https://raw.githubusercontent.com/llendway/gps-data/master/data/panama_swim_20160131.csv")
+
+panama_bike <- read_csv("https://raw.githubusercontent.com/llendway/gps-data/master/data/panama_bike_20160131.csv")
+
+panama_run <- read_csv("https://raw.githubusercontent.com/llendway/gps-data/master/data/panama_run_20160131.csv")
+
+#COVID-19 data from the New York Times
+covid19 <- read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")
+
+#bike data from Homework 3
+data_site <- 
+  "https://www.macalester.edu/~dshuman1/data/112/2014-Q4-Trips-History-Data.rds" 
+Trips <- readRDS(gzcon(url(data_site)))
+Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv")
+small_trains <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-02-26/small_trains.csv") 
+
+```
+
+## Put your homework on GitHub!
+
+Go [here](https://github.com/llendway/github_for_collaboration/blob/master/github_for_collaboration.md) or to previous homework to remind yourself how to get set up. 
+
+Once your repository is created, you should always open your **project** rather than just opening an .Rmd file. You can do that by either clicking on the .Rproj file in your repository folder on your computer. Or, by going to the upper right hand corner in R Studio and clicking the arrow next to where it says Project: (None). You should see your project come up in that list if you've used it recently. You could also go to File --> Open Project and navigate to your .Rproj file. 
+
+## Instructions
+
+* Put your name at the top of the document. 
+
+* **For ALL graphs, you should include appropriate labels.** 
+
+* Feel free to change the default theme, which I currently have set to `theme_minimal()`. 
+
+* Use good coding practice. Read the short sections on good code with [pipes](https://style.tidyverse.org/pipes.html) and [ggplot2](https://style.tidyverse.org/ggplot2.html). **This is part of your grade!**
+
+* **NEW!!** With animated graphs, add `eval=FALSE` to the code chunk that creates the animation and saves it using `anim_save()`. Add another code chunk to reread the gif back into the file. See the [tutorial](https://animation-and-interactivity-in-r.netlify.app/) for help. 
+
+* When you are finished with ALL the exercises, uncomment the options at the top so your document looks nicer. Don't do it before then, or else you might miss some important warnings and messages.
+
+## Warm-up exercises from tutorial
+
+  1. Choose 2 graphs you have created for ANY assignment in this class and add interactivity using the `ggplotly()` function.
+
+Animate the density plot from Homework 3 with `ggplotly()`:
+```{r}
+trips_graph <- Trips %>%
+  mutate(day_of_week = wday(sdate, label = TRUE), 
+         hour = hour(sdate), 
+         minute_decimal = minute(sdate)/60, 
+         time_of_day = hour+minute_decimal) %>%
+  ggplot(aes(time_of_day, fill = client, text = client))+
+  geom_density(alpha = 0.5, color = NA) +
+  facet_wrap(vars(day_of_week)) + 
+  labs(title = "Rental times for Capital Bikeshare during final quarter of 2014", x="time of day", y="")
+  
+ggplotly(trips_graph, tooltip = c("text", "y"))
+```
+
+And this scatterplot from Homework 3:
+```{r}
+lat_long_graph <- Trips %>%
+  group_by(sstation) %>% 
+  count() %>%
+  inner_join(Stations, by = c("sstation" = "name")) %>%
+  ggplot(aes(x=lat, y=long, color = n, text = n))+
+  geom_point() + 
+  labs(x = "latitude", y="longitude", title = "Departures by station location for Capital Bikeshare", color = "Departures")
+
+ggplotly(lat_long_graph, tooltip = c("text", "sstation")) 
+##can you ever label with sstation? 
+```
+
+  2. Use animation to tell an interesting story with the `small_trains` dataset that contains data from the SNCF (National Society of French Railways). These are Tidy Tuesday data! Read more about it [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
+group by month, sum number of delayed arrivals for each station and number of trips to get a percentage of delayed arrivals each month, create racing bar chart that goes up and down for each station. 
+```{r, eval=FALSE}
+#make small_trains have a date column
+small_trains <- within(small_trains, date <- sprintf("%d-%02d", year, month))
+small_trains$date <- as.Date(paste(small_trains$date,"-01",sep=""))
+
+#how many arrivals each station had
+number_arrivals <- small_trains %>%
+  group_by(date, arrival_station) %>%
+  summarize(monthly_arrivals = sum(total_num_trips)) %>%
+  ungroup() %>%
+  complete(date, arrival_station) %>%
+  arrange(arrival_station, date) %>%
+  group_by(arrival_station) %>%
+  replace_na(list(monthly_arrivals = 0)) %>%
+  mutate(cum_arrivals = cumsum(monthly_arrivals), 
+         cum_arrivals = cum_arrivals/100000) %>%
+  filter(cum_arrivals > 0)
+  
+arrival_gif <- number_arrivals %>% 
+  group_by(date) %>%
+  filter(n()>=10) %>% 
+  top_n(n = 10, wt = cum_arrivals) %>% 
+  arrange(date, cum_arrivals) %>% 
+  mutate(rank = 1:n()) %>% 
+  ggplot(aes(x = cum_arrivals,
+             y = factor(rank),
+             fill = arrival_station,
+             group = arrival_station)) +
+  geom_col() +
+  geom_text(aes(label = arrival_station),
+            x = -10,
+            hjust = "right") +
+  scale_x_continuous(limits = c(-10,NA),
+                     breaks = c(seq(0,20,1))) +
+  labs(title = "Arrivals per Station (hundred thousands)",
+       subtitle = "Date: {frame_time}",
+       x = "", 
+       y = "") +
+  theme(axis.line = element_blank(), 
+        panel.grid = element_blank(),
+        axis.text.y = element_blank(),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  transition_time(date)
+
+animate(arrival_gif, nframes = 50, duration = 15)
+anim_save("arrival.gif")
+
+#is there a way to move the station labels closer and to make the date only show the month and the year?
+```
+
+```{r}
+knitr::include_graphics("arrival.gif")
+```
+
+## Garden data
+
+  3. In this exercise, you will create a stacked area plot that reveals itself over time (see the `geom_area()` examples [here](https://ggplot2.tidyverse.org/reference/position_stack.html)). You will look at cumulative harvest of tomato varieties over time. You should do the following:
+  * From the `garden_harvest` data, filter the data to the tomatoes and find the *daily* harvest in pounds for each variety.  
+  * Then, for each variety, find the cumulative harvest in pounds.  
+  * Use the data you just made to create a static cumulative harvest area plot, with the areas filled with different colors for each vegetable and arranged (HINT: `fct_reorder()`) from most to least harvested (most on the bottom).  
+  * Add animation to reveal the plot over date. 
+
+I have started the code for you below. The `complete()` function creates a row for all unique `date`/`variety` combinations. If a variety is not harvested on one of the harvest dates in the dataset, it is filled with a value of 0.
+
+```{r}
+cum_tomato_harvest <- garden_harvest %>% 
+  filter(vegetable == "tomatoes") %>% 
+  group_by(date, variety) %>% 
+  summarize(daily_harvest_lb = sum(weight)*0.00220462) %>% 
+  ungroup() %>% 
+  complete(variety, date, fill = list(daily_harvest_lb = 0)) %>%
+  arrange(variety, date) %>%
+  group_by(variety) %>%
+  replace_na(list(daily_harvest_lb = 0)) %>%
+  mutate(cum_harvest_lb = cumsum(daily_harvest_lb)) %>%
+  filter(cum_harvest_lb > 0) %>%
+  mutate(final_harvest = max(cum_harvest_lb))
+```
+
+```{r, eval = FALSE}
+cumulative_tomato <- cum_tomato_harvest %>%
+  ggplot(aes(date, cum_harvest_lb)) +
+  geom_area(aes(fill = fct_reorder(variety, final_harvest)))+
+  transition_reveal(date)+
+  labs(title = "Cumulative harvest (lbs) of tomato varieties overtime", x="", y="", fill = "")
+  
+animate(cumulative_tomato, duration = 10, end_pause = 5)
+anim_save("cumulative_tomato.gif")
+```
+
+```{r}
+knitr::include_graphics("cumulative_tomato.gif")
+```
+
+## Maps, animation, and movement!
+
+  4. Map my `mallorca_bike_day7` bike ride using animation! 
+  Requirements:
+  * Plot on a map using `ggmap`.  
+  * Show "current" location with a red point. 
+  * Show path up until the current point.  
+  * Color the path according to elevation.  
+  * Show the time in the subtitle.  
+  * CHALLENGE: use the `ggimage` package and `geom_image` to add a bike image instead of a red point. You can use [this](https://raw.githubusercontent.com/llendway/animation_and_interactivity/master/bike.png) image. See [here](https://goodekat.github.io/presentations/2019-isugg-gganimate-spooky/slides.html#35) for an example. 
+  * Add something of your own! And comment on if you prefer this to the static map and why or why not.
+```{r, eval = FALSE}
+bike_image_link <- "https://raw.githubusercontent.com/llendway/animation_and_interactivity/master/bike.png"
+
+mallorca_bike_day7 <- mallorca_bike_day7 %>%
+  mutate(bike_image = bike_image_link)
+
+mallorca_map <- get_stamenmap(
+    bbox = c(left = 2.28, bottom = 39.55, right = 2.7, top = 39.7), 
+    maptype = "terrain",
+    zoom = 12
+)
+mallorcabike <- ggmap(mallorca_map)+
+  geom_path(data = mallorca_bike_day7, 
+            aes(x=lon, y=lat, color = ele), 
+            size = 1) + 
+  #geom_image(aes(bike_image_link))+
+  geom_image(data = mallorca_bike_day7,
+             aes(lon, lat, image = bike_image_link), 
+             size = 0.1) + 
+  scale_color_viridis_c(option = "magma") + 
+  theme_map()+
+  theme(legend.background = element_blank())+
+  labs(title = "Mallorca bike day 7", 
+       subtitle = {"Time: {frame_along}"})+
+  annotate(geom="text", y=39.66, x=2.461282, label = "quick break here :)", fontface = "bold", cex=3)+
+  annotate(geom="text", y=39.6412, x=2.5482, label = "highest hill!", fontface = "bold", cex=3)+
+  geom_image(aes(image = bike_image_link), size = 0.3)+
+  transition_reveal(time)
+
+animate(mallorcabike, duration = 15, end_pause = 5)
+anim_save("mallorcaday7.gif")
+```
+
+```{r}
+knitr::include_graphics("mallorcaday7.gif") 
+#why is the time different, is there a way to make this bigger? 
+```
+  
+  5. In this exercise, you get to meet my sister, Heather! She is a proud Mac grad, currently works as a Data Scientist at 3M where she uses R everyday, and for a few years (while still holding a full-time job) she was a pro triathlete. You are going to map one of her races. The data from each discipline of the Ironman 70.3 Pan Am championships, Panama is in a separate file - `panama_swim`, `panama_bike`, and `panama_run`. Create a similar map to the one you created with my cycling data. You will need to make some small changes: 1. combine the files (HINT: `bind_rows()`, 2. make the leading dot a different color depending on the event (for an extra challenge, make it a different image using `geom_image()!), 3. CHALLENGE (optional): color by speed, which you will need to compute on your own from the data. You can read Heather's race report [here](https://heatherlendway.com/2016/02/10/ironman-70-3-pan-american-championships-panama-race-report/). She is also in the Macalester Athletics [Hall of Fame](https://athletics.macalester.edu/honors/hall-of-fame/heather-lendway/184) and still has records at the pool. 
+  
+```{r, eval = FALSE}
+#bind rows to create the data set for the full triathlon
+triathlon <- bind_rows(panama_swim, panama_bike, panama_run)
+swim_image <- 
+
+#create the map
+panama_map <- get_stamenmap(
+    bbox = c(left = -79.58, bottom = 8.9, right = -79.48, top = 9),
+    maptype = "terrain",
+    zoom = 14)
+
+ggmap(panama_map)+
+  geom_path(data = triathlon, 
+            aes(x=lon, y=lat, group=event, color = event), 
+            size = 1) + 
+  geom_point(data = triathlon, 
+             aes(x=lon, y=lat, image = c()))+
+  theme_map()+
+  theme(legend.background = element_blank())+
+  labs(title = "Panama Triathlon")+
+  geom_point()+
+  transition_reveal(time)
+  
+anim_save("triathlon.gif")
+```
+
+```{r}
+knitr::include_graphics("triathlon.gif")  
+```
+
+## COVID-19 data
+
+  6. In this exercise, you are going to replicate many of the features in [this](https://aatishb.com/covidtrends/?region=US) visualization by Aitish Bhatia but include all US states. Requirements:
+ * Create a new variable that computes the number of new cases in the past week (HINT: use the `lag()` function you've used in a previous set of exercises). Replace missing values with 0's using `replace_na()`.  
+ 
+  * Filter the data to omit rows where the cumulative case counts are less than 20.  
+  * Create a static plot with cumulative cases on the x-axis and new cases in the past 7 days on the y-axis. Connect the points for each state over time. HINTS: use `geom_path()` and add a `group` aesthetic.  Put the x and y axis on the log scale and make the tick labels look nice - `scales::comma` is one option. This plot will look pretty ugly as is.
+  * Animate the plot to reveal the pattern by date. Display the date as the subtitle. Add a leading point to each state's line (`geom_point()`) and add the state name as a label (`geom_text()` - you should look at the `check_overlap` argument).  
+  * Use the `animate()` function to have 200 frames in your animation and make it 30 seconds long. 
+  * Comment on what you observe.
+
+```{r, eval=FALSE}
+covid_trajectory <- covid19 %>% 
+  group_by(state) %>% 
+  mutate(lag_seven_day = lag(cases, 7, order_by = date)) %>% 
+  replace_na(list(lag_seven_day = 0)) %>% 
+  mutate(weekly_new_cases = cases - lag_seven_day) %>%
+  filter(cases >=20) %>%
+  ggplot(aes(cases, lag_seven_day, group=state))+
+  geom_path(color = "gray76")+ #can change to geom_path
+  geom_point(color = "red")+
+  geom_text(aes(label = state), check_overlap = TRUE)+
+  scale_x_log10(labels = scales::comma)+
+  scale_y_log10(labels = scales::comma)+
+  labs(title = "Trajectory of US Confirmed COVID-19 Cases", 
+      subtitle = "Date: {frame_along}", 
+      x = "Total Confirmed Cases", 
+      y= "New confirmed cases (in the past week)")+
+  transition_reveal(date)
+
+animate(covid_trajectory, nframes = 200, duration = 30)
+anim_save("covid_trajectory.gif")
+```
+
+```{r}
+knitr::include_graphics("covid_trajectory.gif")  
+```
+
+  
+  7. In this exercise you will animate a map of the US, showing how cumulative COVID-19 cases per 10,000 residents has changed over time. This is similar to exercises 11 & 12 from the previous exercises, with the added animation! So, in the end, you should have something like the static map you made there, but animated over all the days. The code below gives the population estimates for each state and loads the `states_map` data. Here is a list of details you should include in the plot:
+  
+  * Put date in the subtitle.   
+  * Because there are so many dates, you are going to only do the animation for all Fridays. So, use `wday()` to create a day of week variable and filter to all the Fridays.   
+  * Use the `animate()` function to make the animation 200 frames instead of the default 100 and to pause for 10 frames on the end frame.   
+  * Use `group = date` in `aes()`.   
+  * Comment on what you see.  
+```{r}
+census_pop_est_2018 <- read_csv("https://www.dropbox.com/s/6txwv3b4ng7pepe/us_census_2018_state_pop_est.csv?dl=1") %>% 
+  separate(state, into = c("dot","state"), extra = "merge") %>% 
+  select(-dot) %>% 
+  mutate(state = str_to_lower(state))
+
+friday_per_10000 <- covid19 %>%
+  mutate(weekday = wday(date, label = TRUE), 
+         state = str_to_lower(state)) %>%
+  filter(weekday == "Fri") %>%
+  left_join(census_pop_est_2018, by = "state") %>% 
+  mutate(cases_per_10000 = (cases/est_pop_2018)*10000) %>%
+  filter(!is.na(cases_per_10000))
+
+states_map <- map_data("state")
+'%!in%' <- Negate('%in%')
+
+cases_overtime <- friday_per_10000 %>% 
+  ggplot() +
+  geom_map(map = states_map,
+           aes(map_id = state,
+               fill = cases_per_10000, group = date)) +
+  expand_limits(x = states_map$long, y = states_map$lat) + 
+  scale_fill_viridis_c(option = "E")+
+  labs(title = "COVID-19 cases per 10,000 people in the US", subtitle = "Date: {frame_along}", fill = "", caption = "Plot created by Erin Franke, data from US Census (2018) and New York Times") +
+  theme_map() +
+  theme(legend.background = element_blank())+
+  transition_reveal(date)
+
+animate(cases_overtime, nframes = 200, end_pause = 10)
+```
+
+## Your first `shiny` app (for next week!)
+
+NOT DUE THIS WEEK! If any of you want to work ahead, this will be on next week's exercises.
+
+  8. This app will also use the COVID data. Make sure you load that data and all the libraries you need in the `app.R` file you create. Below, you will post a link to the app that you publish on shinyapps.io. You will create an app to compare states' cumulative number of COVID cases over time. The x-axis will be number of days since 20+ cases and the y-axis will be cumulative cases on the log scale (`scale_y_log10()`). We use number of days since 20+ cases on the x-axis so we can make better comparisons of the curve trajectories. You will have an input box where the user can choose which states to compare (`selectInput()`) and have a submit button to click once the user has chosen all states they're interested in comparing. The graph should display a different line for each state, with labels either on the graph or in a legend. Color can be used if needed. 
+  
+## GitHub link
+
+  9. Below, provide a link to your GitHub page with this set of Weekly Exercises. Specifically, if the name of the file is 05_exercises.Rmd, provide a link to the 05_exercises.md file, which is the one that will be most readable on GitHub. If that file isn't very readable, then provide a link to your main GitHub page.
+
+
+**DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
