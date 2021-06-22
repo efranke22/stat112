@@ -273,7 +273,7 @@ I prefer the animated map to the static map because it forces the viewer to trac
 #bind rows to create the data set for the full triathlon
 triathlon <- bind_rows(panama_swim, panama_bike, panama_run)
 swimmer_image <- "https://raw.githubusercontent.com/efranke22/stat112/main/homework_5_stat112/swimmer_image.png"
-runner_image <- "https://raw.githubusercontent.com/efranke22/stat112/main/homework_5_stat112/running3.png"
+runner_image <- "https://raw.githubusercontent.com/efranke22/stat112/main/homework_5_stat112/411-4111500_noun-project-running-icon-png-transparent-png.png"
 
 triathlon <- triathlon %>%
   mutate(swim_bike_run_image = case_when(event == "Swim"~swimmer_image, 
@@ -354,7 +354,7 @@ From this animation we observe that the states with the most COVID-19 cases incl
   * Use the `animate()` function to make the animation 200 frames instead of the default 100 and to pause for 10 frames on the end frame.   
   * Use `group = date` in `aes()`.   
   * Comment on what you see.  
-```{r}
+```{r, eval=FALSE}
 census_pop_est_2018 <- read_csv("https://www.dropbox.com/s/6txwv3b4ng7pepe/us_census_2018_state_pop_est.csv?dl=1") %>% 
   separate(state, into = c("dot","state"), extra = "merge") %>% 
   select(-dot) %>% 
