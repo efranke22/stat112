@@ -12,7 +12,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -64,7 +64,6 @@ data_site <-
 Trips <- readRDS(gzcon(url(data_site)))
 Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv")
 small_trains <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-02-26/small_trains.csv") 
-
 ```
 
 ## Put your homework on GitHub!
@@ -121,7 +120,8 @@ ggplotly(lat_long_graph, tooltip = c("text", "sstation"))
 ```
 
   2. Use animation to tell an interesting story with the `small_trains` dataset that contains data from the SNCF (National Society of French Railways). These are Tidy Tuesday data! Read more about it [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
-group by month, sum number of delayed arrivals for each station and number of trips to get a percentage of delayed arrivals each month, create racing bar chart that goes up and down for each station. 
+
+I will create a racing bar chart for the number of arrivals that the top 10 stations have: 
 ```{r, eval=FALSE}
 #make small_trains have a date column
 small_trains <- within(small_trains, date <- sprintf("%d-%02d", year, month))
@@ -156,7 +156,7 @@ arrival_gif <- number_arrivals %>%
             hjust = "right") +
   scale_x_continuous(limits = c(-10,NA),
                      breaks = c(seq(0,20,1))) +
-  labs(title = "Arrivals per Station (hundred thousands)",
+  labs(title = "Arrivals per station (hundred thousands)",
        subtitle = "Date: {frame_time}",
        x = "", 
        y = "") +
@@ -243,7 +243,6 @@ mallorcabike <- ggmap(mallorca_map)+
   geom_path(data = mallorca_bike_day7, 
             aes(x=lon, y=lat, color = ele), 
             size = 1) + 
-  #geom_image(aes(bike_image_link))+
   geom_image(data = mallorca_bike_day7,
              aes(lon, lat, image = bike_image_link), 
              size = 0.1) + 
@@ -257,7 +256,7 @@ mallorcabike <- ggmap(mallorca_map)+
   geom_image(aes(image = bike_image_link), size = 0.3)+
   transition_reveal(time)
 
-animate(mallorcabike, duration = 15, end_pause = 5)
+animate(mallorcabike, duration = 15, end_pause = 8)
 anim_save("mallorcaday7.gif")
 ```
 
@@ -265,32 +264,42 @@ anim_save("mallorcaday7.gif")
 knitr::include_graphics("mallorcaday7.gif") 
 #why is the time different, is there a way to make this bigger? 
 ```
-  
+
+I prefer the animated map to the static map because it forces the viewer to track the bike ride overtime and therefore they may be more inclined to pay attention to elevation changes. Additionally, with animation we get to view another variable, which is time. We can kind of tell where Lisa was going fast, taking a quick break, and overall how long her ride took her. 
+
   5. In this exercise, you get to meet my sister, Heather! She is a proud Mac grad, currently works as a Data Scientist at 3M where she uses R everyday, and for a few years (while still holding a full-time job) she was a pro triathlete. You are going to map one of her races. The data from each discipline of the Ironman 70.3 Pan Am championships, Panama is in a separate file - `panama_swim`, `panama_bike`, and `panama_run`. Create a similar map to the one you created with my cycling data. You will need to make some small changes: 1. combine the files (HINT: `bind_rows()`, 2. make the leading dot a different color depending on the event (for an extra challenge, make it a different image using `geom_image()!), 3. CHALLENGE (optional): color by speed, which you will need to compute on your own from the data. You can read Heather's race report [here](https://heatherlendway.com/2016/02/10/ironman-70-3-pan-american-championships-panama-race-report/). She is also in the Macalester Athletics [Hall of Fame](https://athletics.macalester.edu/honors/hall-of-fame/heather-lendway/184) and still has records at the pool. 
   
 ```{r, eval = FALSE}
 #bind rows to create the data set for the full triathlon
 triathlon <- bind_rows(panama_swim, panama_bike, panama_run)
-swim_image <- 
+swimmer_image <- "https://raw.githubusercontent.com/efranke22/stat112/main/homework_5_stat112/swimmer_image.png"
+runner_image <- "https://raw.githubusercontent.com/efranke22/stat112/main/homework_5_stat112/running3.png"
+
+triathlon <- triathlon %>%
+  mutate(swim_bike_run_image = case_when(event == "Swim"~swimmer_image, 
+                                         event == "Bike"~bike_image_link, 
+                                         event == "Run"~runner_image))
 
 #create the map
-panama_map <- get_stamenmap(
+panama_map <- panama_map <- get_stamenmap(
     bbox = c(left = -79.58, bottom = 8.9, right = -79.48, top = 9),
     maptype = "terrain",
     zoom = 14)
 
-ggmap(panama_map)+
+triathlon_gif <- ggmap(panama_map)+
   geom_path(data = triathlon, 
             aes(x=lon, y=lat, group=event, color = event), 
             size = 1) + 
-  geom_point(data = triathlon, 
-             aes(x=lon, y=lat, image = c()))+
+  geom_image(data = triathlon,
+             aes(lon, lat, image = swim_bike_run_image), 
+             size = 0.1) +
   theme_map()+
   theme(legend.background = element_blank())+
-  labs(title = "Panama Triathlon")+
+  labs(title = "Heather's Ironman 70.3 Pan Am Championships")+
   geom_point()+
   transition_reveal(time)
   
+animate(triathlon_gif, duration = 20, end_pause = 5)
 anim_save("triathlon.gif")
 ```
 
@@ -336,7 +345,8 @@ anim_save("covid_trajectory.gif")
 knitr::include_graphics("covid_trajectory.gif")  
 ```
 
-  
+From this animation we observe that the states with the most COVID-19 cases include Florida, California, New York, Illinois, Texas, and others. We also see that New York and New Jersey were leaders in cases at the beginning of the pandemic and through the summer of 2020 before a lot of other states started to spike in cases. 
+
   7. In this exercise you will animate a map of the US, showing how cumulative COVID-19 cases per 10,000 residents has changed over time. This is similar to exercises 11 & 12 from the previous exercises, with the added animation! So, in the end, you should have something like the static map you made there, but animated over all the days. The code below gives the population estimates for each state and loads the `states_map` data. Here is a list of details you should include in the plot:
   
   * Put date in the subtitle.   
@@ -358,23 +368,29 @@ friday_per_10000 <- covid19 %>%
   mutate(cases_per_10000 = (cases/est_pop_2018)*10000) %>%
   filter(!is.na(cases_per_10000))
 
-states_map <- map_data("state")
-'%!in%' <- Negate('%in%')
+states_map <- map_data("state") 
 
 cases_overtime <- friday_per_10000 %>% 
   ggplot() +
   geom_map(map = states_map,
-           aes(map_id = state,
-               fill = cases_per_10000, group = date)) +
+           aes(map_id = state, group = date,
+               fill = cases_per_10000)) +
   expand_limits(x = states_map$long, y = states_map$lat) + 
   scale_fill_viridis_c(option = "E")+
-  labs(title = "COVID-19 cases per 10,000 people in the US", subtitle = "Date: {frame_along}", fill = "", caption = "Plot created by Erin Franke, data from US Census (2018) and New York Times") +
+  labs(title = "COVID-19 cases per 10,000 people in the US", subtitle = "Date: {closest_state}", fill = "", caption = "Plot created by Erin Franke, data from US Census (2018) and New York Times") +
   theme_map() +
   theme(legend.background = element_blank())+
-  transition_reveal(date)
+  transition_states(date)
 
 animate(cases_overtime, nframes = 200, end_pause = 10)
+anim_save("cases_overtime.gif")
 ```
+
+```{r}
+knitr::include_graphics("cases_overtime.gif")
+```
+
+From this graphic we see the growth in number of confirmed cases per 10,000 people in each state. We see that at the end of 2020 the Dakotas seemed to become leaders (or maybe they should be called losers) in COVID-19/cases per 10,000 people. Oregon, Washington, Maine, and Vermont all stayed pretty low in cases/10,000 people throughout the pandemic. 
 
 ## Your first `shiny` app (for next week!)
 
