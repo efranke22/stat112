@@ -115,13 +115,12 @@ lat_long_graph <- Trips %>%
   geom_point() + 
   labs(x = "latitude", y="longitude", title = "Departures by station location for Capital Bikeshare", color = "Departures")
 
-ggplotly(lat_long_graph, tooltip = c("text", "sstation")) 
-##can you ever label with sstation? 
+ggplotly(lat_long_graph, tooltip = "text")
 ```
 
   2. Use animation to tell an interesting story with the `small_trains` dataset that contains data from the SNCF (National Society of French Railways). These are Tidy Tuesday data! Read more about it [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
 
-I will create a racing bar chart for the number of arrivals that the top 10 stations have: 
+I will create a racing bar chart for the number of arrivals that the top 10 stations have (*I will work on making that gap smaller on Thurs*). 
 ```{r, eval=FALSE}
 #make small_trains have a date column
 small_trains <- within(small_trains, date <- sprintf("%d-%02d", year, month))
@@ -154,7 +153,7 @@ arrival_gif <- number_arrivals %>%
   geom_text(aes(label = arrival_station),
             x = -10,
             hjust = "right") +
-  scale_x_continuous(limits = c(-10,NA),
+  scale_x_continuous(limits = c(-20,20),
                      breaks = c(seq(0,20,1))) +
   labs(title = "Arrivals per station (hundred thousands)",
        subtitle = "Date: {frame_time}",
@@ -235,7 +234,7 @@ mallorca_bike_day7 <- mallorca_bike_day7 %>%
   mutate(bike_image = bike_image_link)
 
 mallorca_map <- get_stamenmap(
-    bbox = c(left = 2.28, bottom = 39.55, right = 2.7, top = 39.7), 
+    bbox = c(left = 2.35, bottom = 39.55, right = 2.63, top = 39.7), 
     maptype = "terrain",
     zoom = 12
 )
@@ -253,7 +252,6 @@ mallorcabike <- ggmap(mallorca_map)+
        subtitle = {"Time: {frame_along}"})+
   annotate(geom="text", y=39.66, x=2.461282, label = "quick break here :)", fontface = "bold", cex=3)+
   annotate(geom="text", y=39.6412, x=2.5482, label = "highest hill!", fontface = "bold", cex=3)+
-  geom_image(aes(image = bike_image_link), size = 0.3)+
   transition_reveal(time)
 
 animate(mallorcabike, duration = 15, end_pause = 8)
@@ -262,7 +260,6 @@ anim_save("mallorcaday7.gif")
 
 ```{r}
 knitr::include_graphics("mallorcaday7.gif") 
-#why is the time different, is there a way to make this bigger? 
 ```
 
 I prefer the animated map to the static map because it forces the viewer to track the bike ride overtime and therefore they may be more inclined to pay attention to elevation changes. Additionally, with animation we get to view another variable, which is time. We can kind of tell where Lisa was going fast, taking a quick break, and overall how long her ride took her. 
@@ -294,8 +291,8 @@ triathlon_gif <- ggmap(panama_map)+
              aes(lon, lat, image = swim_bike_run_image), 
              size = 0.1) +
   theme_map()+
-  theme(legend.background = element_blank())+
-  labs(title = "Heather's Ironman 70.3 Pan Am Championships")+
+  theme(legend.position = "none")+
+  labs(title = "Heather's Ironman 70.3 Pan Am Championship Race")+
   geom_point()+
   transition_reveal(time)
   
@@ -401,6 +398,6 @@ NOT DUE THIS WEEK! If any of you want to work ahead, this will be on next week's
 ## GitHub link
 
   9. Below, provide a link to your GitHub page with this set of Weekly Exercises. Specifically, if the name of the file is 05_exercises.Rmd, provide a link to the 05_exercises.md file, which is the one that will be most readable on GitHub. If that file isn't very readable, then provide a link to your main GitHub page.
+  
+https://github.com/efranke22/stat112/blob/main/homework_5_stat112/05_exercises_EF.rmd
 
-
-**DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
