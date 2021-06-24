@@ -120,7 +120,7 @@ ggplotly(lat_long_graph, tooltip = "text")
 
   2. Use animation to tell an interesting story with the `small_trains` dataset that contains data from the SNCF (National Society of French Railways). These are Tidy Tuesday data! Read more about it [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
 
-I will create a racing bar chart for the number of arrivals that the top 10 stations have (*I will work on making that gap smaller on Thurs*). 
+I will create a racing bar chart for the number of arrivals that the top 10 stations have:
 ```{r, eval=FALSE}
 #make small_trains have a date column
 small_trains <- within(small_trains, date <- sprintf("%d-%02d", year, month))
@@ -151,10 +151,10 @@ arrival_gif <- number_arrivals %>%
              group = arrival_station)) +
   geom_col() +
   geom_text(aes(label = arrival_station),
-            x = -10,
+            x = -2,
             hjust = "right") +
-  scale_x_continuous(limits = c(-20,20),
-                     breaks = c(seq(0,20,1))) +
+  scale_x_continuous(limits = c(-10,20),
+                     breaks = c(seq(0,20,5))) +
   labs(title = "Arrivals per station (hundred thousands)",
        subtitle = "Date: {frame_time}",
        x = "", 
@@ -168,8 +168,6 @@ arrival_gif <- number_arrivals %>%
 
 animate(arrival_gif, nframes = 50, duration = 15)
 anim_save("arrival.gif")
-
-#is there a way to move the station labels closer and to make the date only show the month and the year?
 ```
 
 ```{r}
